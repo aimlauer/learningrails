@@ -387,8 +387,11 @@ Ahora le agregamos un link más para borrar al app/views/articles/index.html.erb
 Ahora vamos a pasar a agregar un nuevo modelo... (cuando hablamos de creación
 de un modelo creo que nos referimos a la base de datos a una tabla en particular)
 #####
+Para terminar con la sección de comentarios lo podés ver directamente de la página
+oficial. 
+Y falta refactoring
 
-
+Fuente: https://guides.rubyonrails.org/getting_started.html
 
 
 
