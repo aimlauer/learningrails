@@ -1,0 +1,404 @@
+pacman -S ruby # instala la última versión del repositorio.
+gem install rails
+
+rails new gettingstarted
+cd gettingstarted
+rails generate controller Welcome index
+# Genera una vista y un controlador.
+Para ver como una página princopal el nuevo index que 
+generamos agregamos root 'welcome#index' en 
+config/routes.rb 
+
+Rails provee un método "resources" que puede ser usado para
+declarar un recurso REST estándar. Necesitás agregar el
+recurso artículo a la config/routes.rb:
+'resources :articles'
+
+Si ejecutás ahora rails routes, vas a ver las rutas que se
+agregaron
+
+app/views/articles/new.html.erb para agregar una view
+a una página definida anteriormente
+
+<%= form_with scope: :article, local: true do |form| %>
+  <p>
+    <%= form.label :title %><br>
+    <%= form.text_field :title %>
+  </p>
+ 
+  <p>
+    <%= form.label :text %><br>
+    <%= form.text_area :text %>
+  </p>
+ 
+  <p>
+    <%= form.submit %>
+  </p>
+<% end %>
+
+"url: articles_path" es un ayudante pasado a la opción url.
+rails routes para ver lo que hace y comparalo con el resultado anterior.
+
+<%= form_with scope: :article, url: articles_path, local: true do |form| %>
+
+
+Para definir las acciones de las urls generadas anteriormente agregamos
+en app/controllers/articles_controller.rb
+
+	def create
+	end
+
+podemos escribir render plain: params[:article].inspect 
+para ver lo que estamos enviando desde el formulario.
+
+rails generate model Article title:string text:text
+
+rails db:migrate
+
+Guardando la información en el controlador
+app/controllers/articles_controller.rb
+def create
+  @article = Article.new(params[:article])
+ 
+  @article.save
+  redirect_to @article
+end
+
+Por razones de seguridad eso no va a andar y teenés que hacer esto
+def create
+  @article = Article.new(article_params)
+ 
+  @article.save
+  redirect_to @article
+end
+ 
+private
+  def article_params
+    params.require(:article).permit(:title, :text)
+  end
+
+
+Para mostrar los artículos agregamos una función al controlador
+class ArticlesController < ApplicationController
+  def show
+    @article = Article.find(params[:id])
+  end
+ 
+  def new
+  end
+
+Ahora creamos la vista en app/views/articles/show.html.erb
+
+<p>
+  <strong>Title:</strong>
+  <%= @article.title %>
+</p>
+ 
+<p>
+  <strong>Text:</strong>
+  <%= @article.text %>
+</p>
+
+Y debería andar localhost:3000/articles/new y mostrarte lo que escribiste.
+
+
+Para listar todos los artículos de la base de datos tenemos que agregar
+la siguiente función al controlador.
+
+class ArticlesController < ApplicationController
+  def index
+    @articles = Article.all
+  end
+ 
+  def show
+    @article = Article.find(params[:id])
+  end
+ 
+  def new
+  end
+
+Agregando enlaces/links:
+######
+app/views/welcome/index.html.erb
+
+<h1>Hello, Rails!</h1>
+<%= link_to 'My Blog', controller: 'articles' %>
+Y otro link
+<%= link_to 'New article', new_article_path %>
+
+Ahora agregamos enlaces para volver en new.html.erb
+y show.html.erb
+
+<%= link_to 'Back', articles_path %>
+
+Hasta este momento estoy impresionado de lo sencillo que es hacer un simple blog.
+
+
+Agregando validación a los formularios
+#####
+
+Rails ya incluye métodos para validar los formularios
+simplemente agregando en app/models/article.rb --> carpeta MODEEELLLLSS .
+validates :title, presence: true,
+                  length: { minimum: 5}
+end
+
+Ya está.
+
+Ahora si vamos a crear un nuevo artículo no nos dejaría crearlo pero tampoco nos 
+avisa si algo falló así que tenés que arreglar la vista para avisar que algo falló
+
+Primero agregamos al controlador
+app/controller/articles_contr...
+
+def new
+  @article = Article.new
+end
+
+Y luego la vista:
+
+  <% if @article.errors.any? %>
+    <div id="error_explanation">
+      <h2>
+        <%= pluralize(@article.errors.count, "error") %> prohibited
+        this article from being saved:
+      </h2>
+      <ul>
+        <% @article.errors.full_messages.each do |msg| %>
+          <li><%= msg %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+(abajo de form_with y los <p> ubicalos más abajo)
+
+Ahora cuando intentes crear una noticia de un texto de 4 caracteres te va a 
+saltar una alerta con "Title is too short (minimum is 5 characters)"
+
+pluralize es un ayudante de rails que toma un número y una cadena como su 
+argumento. Si el número es más grande que uno, la cadena va a ser altomaticamente
+"pluralized", supongo que es como que llama a esa función de error ?(????(??.
+
+
+Ahora vamos a crear una opción para poder editarlo
+def edit
+  @article = Article.find(params[:id])
+end
+
+edit.html.erb (donde ya tu sabe)
+<h1>Edit Article</h1>
+ 
+<%= form_with(model: @article, local: true) do |form| %>
+ 
+  <% if @article.errors.any? %>
+    <div id="error_explanation">
+      <h2>
+        <%= pluralize(@article.errors.count, "error") %> prohibited
+        this article from being saved:
+      </h2>
+      <ul>
+        <% @article.errors.full_messages.each do |msg| %>
+          <li><%= msg %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+ 
+  <p>
+    <%= form.label :title %><br>
+    <%= form.text_field :title %>
+  </p>
+ 
+  <p>
+    <%= form.label :text %><br>
+    <%= form.text_area :text %>
+  </p>
+ 
+  <p>
+    <%= form.submit %>
+  </p>
+ 
+<% end %>
+ 
+<%= link_to 'Back', articles_path %>
+
+Necesitamos crear "update action" en articles_controller.rb
+entre create y private
+
+def update
+  @article = Article.find(params[:id])
+ 
+  if @article.update(article_params)
+    redirect_to @article
+  else
+    render 'edit'
+  end
+end
+ 
+app/views/articles/index.html.erb
+
+<table>
+  <tr>
+    <th>Title</th>
+    <th>Text</th>
+    <th colspan="2"></th>
+  </tr>
+ 
+  <% @articles.each do |article| %>
+    <tr>
+      <td><%= article.title %></td>
+      <td><%= article.text %></td>
+      <td><%= link_to 'Show', article_path(article) %></td>
+      <td><%= link_to 'Edit', edit_article_path(article) %></td>
+    </tr>
+  <% end %>
+</table>
+
+en app/views/articles/show.html.erb agregamos
+
+...
+<%= link_to 'Edit', edit_article_path(@article) %> |
+<%= link_to 'Back', articles_path %>
+
+Creamos un nuevo archivo en app/views/articles/_form.html.erb
+con lo siguiente:
+
+
+<%= form_with model: @article, local: true do |form| %>
+ 
+  <% if @article.errors.any? %>
+    <div id="error_explanation">
+      <h2>
+        <%= pluralize(@article.errors.count, "error") %> prohibited
+        this article from being saved:
+      </h2>
+      <ul>
+        <% @article.errors.full_messages.each do |msg| %>
+          <li><%= msg %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+ 
+  <p>
+    <%= form.label :title %><br>
+    <%= form.text_field :title %>
+  </p>
+ 
+  <p>
+    <%= form.label :text %><br>
+    <%= form.text_area :text %>
+  </p>
+ 
+  <p>
+    <%= form.submit %>
+  </p>
+ 
+<% end %>
+
+en app/views/articles/new.html.erb borramos todo y escribimos
+
+<h1>New Article</h1>
+ 
+<%= render 'form' %>
+ 
+<%= link_to 'Back', articles_path %>
+
+y en app/views/articles/edit.html.erb
+
+<h1>Edit Article</h1>
+ 
+<%= render 'form' %>
+ 
+<%= link_to 'Back', articles_path %>
+
+BORRANDO ARTÍCULOS
+######
+
+en app/controllers/articles_controller.rb agregamos
+def destroy
+  @article = Article.find(params[:id])
+  @article.destroy
+ 
+  redirect_to articles_path
+end
+
+Estamos contruyendo el CRUD (Create, Read, Update, Destroy) si no mal no me acuerdo era así lol
+
+Debería verse así
+
+class ArticlesController < ApplicationController
+  def index
+    @articles = Article.all
+  end
+ 
+  def show
+    @article = Article.find(params[:id])
+  end
+ 
+  def new
+    @article = Article.new
+  end
+ 
+  def edit
+    @article = Article.find(params[:id])
+  end
+ 
+  def create
+    @article = Article.new(article_params)
+ 
+    if @article.save
+      redirect_to @article
+    else
+      render 'new'
+    end
+  end
+ 
+  def update
+    @article = Article.find(params[:id])
+ 
+    if @article.update(article_params)
+      redirect_to @article
+    else
+      render 'edit'
+    end
+  end
+ 
+  def destroy
+    @article = Article.find(params[:id])
+    @article.destroy
+ 
+    redirect_to articles_path
+  end
+ 
+  private
+    def article_params
+      params.require(:article).permit(:title, :text)
+    end
+end
+
+Ahora le agregamos un link más para borrar al app/views/articles/index.html.erb
+
+      <td><%= link_to 'Destroy', article_path(article),
+              method: :delete,
+              data: { confirm: 'Are you sure?' } %></td>
+
+
+Ahora vamos a pasar a agregar un nuevo modelo... (cuando hablamos de creación
+de un modelo creo que nos referimos a la base de datos a una tabla en particular)
+#####
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
